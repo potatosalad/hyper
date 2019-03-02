@@ -21,3 +21,6 @@ erl_crash.dump
 
 # Ignore shared object files
 /priv/native/*.so
+
+# Ignore output from HDR histogram
+*.hgrm

@@ -4,6 +4,7 @@ use futures::Future;
 use hyper::rt;
 use hyper::service::service_fn;
 use hyper::{Body, Request, Response, Server};
+use rustler::types::list::ListIterator;
 use rustler::{Encoder, Env, Error, OwnedEnv, ResourceArc, Term};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,7 +15,7 @@ pub(crate) struct ResponseChannel(Mutex<Option<oneshot::Sender<String>>>);
 pub(crate) struct ShutdownChannel(Mutex<Option<oneshot::Sender<()>>>);
 pub(crate) struct Select(Arc<AtomicBool>);
 
-#[derive(NifMap)]
+#[derive(NifTuple)]
 struct Req {
     path: String,
     host: Option<String>,
@@ -135,4 +136,30 @@ pub fn batch_read<'a>(env: Env<'a>, terms: &[Term<'a>]) -> Result<Term<'a>, Erro
     resource.0.swap(true, Ordering::Relaxed);
 
     Ok((atoms::ok()).encode(env))
+}
+
+#[derive(NifTuple)]
+struct BatchSendTuple {
+    resource: ResourceArc<ResponseChannel>,
+    body: String,
+}
+
+pub fn batch_send_resp<'a>(env: Env<'a>, terms: &[Term<'a>]) -> Result<Term<'a>, Error> {
+    let list: ListIterator = terms[0].decode()?;
+
+    let res: Result<Vec<BatchSendTuple>, Error> =
+        list.map(|x| x.decode::<BatchSendTuple>()).collect();
+
+    match res {
+        Ok(result) => {
+            for tup in result {
+                let mut lock = tup.resource.0.lock().unwrap();
+                if let Some(tx) = lock.take() {
+                    let _ = tx.send(tup.body);
+                }
+            }
+            Ok(atoms::ok().encode(env))
+        }
+        Err(err) => Err(err),
+    }
 }

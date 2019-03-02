@@ -1,4 +1,5 @@
-#[macro_use] extern crate rustler_codegen;
+#[macro_use]
+extern crate rustler_codegen;
 use rustler::{Env, Term};
 
 mod atoms;
@@ -11,6 +12,7 @@ rustler::rustler_export_nifs! {
         ("stop", 1, server::stop),
         ("send_resp", 2, server::send_resp),
         ("batch_read", 1, server::batch_read),
+        ("batch_send_resp", 1, server::batch_send_resp),
     ],
     Some(load)
 }

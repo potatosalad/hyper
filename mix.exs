@@ -8,7 +8,7 @@ defmodule Hyper.Mixfile do
       version: "0.1.0",
       elixir: "~> 1.5",
       rustler_crates: [hyperbeam: []],
-      start_permanent: Mix.env == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
   end
@@ -23,6 +23,7 @@ defmodule Hyper.Mixfile do
   defp deps do
     [
       {:rustler, "~> 0.20"},
+      {:hdr_histogram, github: "HdrHistogram/hdr_histogram_erl", only: :dev}
     ]
   end
 end
